@@ -27,7 +27,7 @@ class LorenzSystem:
 		# Define the initial state
 		if initial_state is None:
 			initial_state = np.array([1.0, 1.0, 1.0])
-		self.state = initial_state.astype(float)
+		self.state = initial_state
 
 		# Also define the trajectory to hold the states
 		self.trajectory = []
@@ -53,4 +53,4 @@ class LorenzSystem:
 		dy = x * (self.ρ - z) - y
 		dz = x * y - self.β * z
 
-		return np.array[dx, dy, dz]
+		return np.array([dx, dy, dz])

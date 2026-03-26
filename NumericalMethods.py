@@ -65,7 +65,8 @@ class HeunEuler:
 
 class RungeKutta:
 	def __init__(self, method):
-		self.method = method
+		
+		self.method = method()
 	"""
 	Uses an adaptive step distance based on the error and tolerance we set up
 	"""
@@ -84,49 +85,37 @@ class RungeKutta:
 	"""
 	Performs one step with the specified Runge Kutta method
 	"""
-	def step(self, system, dt, t, tol=1e-6):
-		# Retrieve the butcher tableau for the method
-		#      Here, b_low correlates to the array for the lower dimension coefficients and 
-		#      b_high correlates to the array for the higher dimension coefficients
+	def step(self, system, dt, tol=1e-6):
 		A = self.method.A
-		C = self.method.C # Technically there is no time dependence for the Lorenz System but we can include this anyway
-		b_high = self.method.b_high 
-		b_low = self.method.b_low 
-		stages = self.method.stages 
+		C = self.method.C
+		b_high = self.method.b_high
+		b_low = self.method.b_low
+		stages = self.method.stages
 		order = self.method.order
-  
-		# Retrieve the current locations of the system in normal form
-		y = system.state 
-		f = system.compute_derivatives
-  
-		# Store the intermediate derivatives
-		k = [np.zeros_like(y) for _ in range(stages)]
-  
-		for i in range(stages):
-			increment = 0
-			for j in range(i):
-				increment += A[i][j] * k[j]
-			t_i = t + C[i] * dt # This step does not run for our example
-			k[i] = f(y + dt * increment, t_i)
-   
-		# Compute high and low order solutions
-		y_high = y + dt * sum(b_high[i] * k[i] for i in range(stages))
-		y_low = y + dt * sum(b_low[i] * k[i] for i in range(stages))
-  
-		# Compute error
-		scale = 1e-6 + 1e-3 * np.maximum(np.abs(y_high), np.abs(y))
-		error = np.sqrt(np.mean(((y_high - y_low) / scale) ** 2))
-  
-		# Compute new timestep 
-		new_dt = self.adaptive_step(dt, error, order)
 
-		if error <= tol:
-			# Accept the state
-			system.state = y_high 
-			system.trajectory.append(system.state.copy())
-			system.error.append(error)
-			accepted = True 
+		k = [None] * stages
+
+		for i in range(stages):
+			y_temp = system.state.copy()
+
+			for j in range(i):
+				y_temp += dt * A[i][j] * k[j]
+
+			k[i] = system.compute_derivatives(y_temp)
+
+		y_high = system.state.copy()
+		y_low  = system.state.copy()
+
+		for i in range(stages):
+			y_high += dt * b_high[i] * k[i]
+			y_low  += dt * b_low[i]  * k[i]
+
+		error = np.linalg.norm(y_high - y_low)
+
+		dt_new = self.adaptive_step(dt, error, order, tol)
+
+		if error < tol:
+			system.state = y_high
+			return dt_new, True
 		else:
-			accepted = False 
-   
-		return new_dt, accepted
+			return dt_new, False
