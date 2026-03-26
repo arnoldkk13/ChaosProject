@@ -4,7 +4,9 @@ from NumericalMethods import DormandPrince45
 
 from NumericalMethods import ForwardEuler
 
-from LorenzSystem import LorenzSystem
+from LorenzAttractor import LorenzAttractor
+from RosslerAttractor import RosslerAttractor
+from ChuaCircuit import ChuaCircuit
 
 from Visualizations import Visualize
 from Visualizations import Animate
@@ -22,15 +24,13 @@ class Simulator:
 	"""
 
 	"""
-	def run_simulation(self, dt=1e-4, sample_dt=0.01):
+	def run_simulation(self, dt=.001, sample_dt=0.01):
 		accepted_steps = 0
 		times = []
   
 		self.total_time = 0.0
-  
-		sample_dt = 0.01
 		next_sample_time = 0.0
-		visualization_trajectory = []
+		next_percent_to_print = 5 # First print at 5 %
   
 		if self.seconds: 
 			while (self.total_time < self.seconds):
@@ -44,12 +44,17 @@ class Simulator:
 
 				# Downsampling for visualization
 				while self.total_time >= next_sample_time:
-					visualization_trajectory.append(system.state.copy())
+					system.record_state() # Updates the trajectory in system with the current state
 					next_sample_time += sample_dt
+     
+				# Progress updates
+				progress = self.total_time / self.seconds * 100
+				if progress >= next_percent_to_print:
+					print(f"Simulation progress: {int(progress)}%")
+					next_percent_to_print += 5
 	 
 				times.append(self.total_time)
 				
-
 		else:
 			while accepted_steps < self.timesteps:
 				dt, accepted = solver.step(system, dt)
@@ -61,12 +66,12 @@ class Simulator:
 				accepted_steps += 1
 
 				while self.total_time >= next_sample_time:
-					visualization_trajectory.append(system.state.copy())
+					system.record_state()
 					next_sample_time += sample_dt
 	 
 				times.append(self.total_time)
 	
-		return accepted_steps, times, visualization_trajectory
+		return accepted_steps, times, system.trajectory
 
 
 ### MAIN ###
@@ -74,6 +79,7 @@ if __name__ == "__main__":
 	import argparse
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--method", type=str, default="DormandPrince45")
+	parser.add_argument("--system", type=str, default="LorenzAttractor")
 	parser.add_argument("--dt", type=float)
 	parser.add_argument("--sample_dt", type=float, default=.01) # For visualization purposes we can tweak the update frequency on the graph
 	parser.add_argument("--timesteps", type=int, default=10000)
@@ -86,12 +92,19 @@ if __name__ == "__main__":
 	parser.add_argument("--interval", type=int, default=5) # Stores the animation interval time
 
 	args = parser.parse_args()
- 
-	# Define the system used
-	system = LorenzSystem(initial_state=[args.x, args.y, args.z])
+
+	if args.system == "LorenzAttractor":
+		# Define the system used
+		system = LorenzAttractor(initial_state=[args.x, args.y, args.z])
+	elif args.system == "RosslerAttractor":
+		system = RosslerAttractor(initial_state=[args.x, args.y, args.z])
+	elif args.system == "ChuaCircuit":
+		system = ChuaCircuit(initial_state=[args.x, args.y, args.z])
+	else:
+		print("Incorrect system used. Exitting")
+		exit(1)
  
  	# Define the solver used
-  
 	dt = args.dt if args.dt else None
 	print(f"Using solver {args.method}.\n")
 
@@ -113,10 +126,10 @@ if __name__ == "__main__":
 
 	# Run simulation. If we are using seconds, we run until total seconds exceeds our seconds.
 	# If we are using timesteps, we run until the number of desired timesteps is reached
-	if args.timesteps:
-		print(f"Running simulation with {args.timesteps} timesteps.\n")
-	else:
+	if args.seconds:
 		print(f"Running simulation for {args.seconds} seconds.\n")
+	else:
+		print(f" {args.timesteps} timesteps.\n")
 	
 	if dt is not None:
 		steps, time, trajectory = simulation.run_simulation(dt=args.dt, sample_dt=args.sample_dt)
@@ -124,14 +137,14 @@ if __name__ == "__main__":
 		steps, time, trajectory = simulation.run_simulation(sample_dt=args.sample_dt)
 	
 	# Visualize the simulation if the flag is used
-	print(f"Visualizing the simulation.\n")
 	if args.visualize:
+		print(f"Visualizing the simulation.\n")
 		visualizer = Visualize()
 
-		visualizer.plot(steps, time, trajectory, args.method, dt)
+		visualizer.plot(steps, time, trajectory, args.method, args.system, dt)
   
 	# Animate the simulation if the flag is used
-	print(f"Animating the simulation.\n")
 	if args.animate:
+		print(f"Animating the simulation.\n")
 		animator = Animate()
-		animator.animate(steps, time, trajectory, args.method, args.sample_dt, args.interval)
+		animator.animate(steps, time, trajectory, args.method, args.sample_dt, args.interval, args.system)

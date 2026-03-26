@@ -9,7 +9,7 @@ This has one function for displaying the graph. Technically we could store the s
 but this is not currently implemented
 """
 class Visualize:
-	def plot(self, steps, times, trajectory, method_name, dt=None):
+	def plot(self, steps, times, trajectory, method_name, system, dt=None):
 		traject_arr = np.array(trajectory)
 		x, y, z = traject_arr[:, 0], traject_arr[:, 1], traject_arr[:, 2]
 		
@@ -22,7 +22,13 @@ class Visualize:
 			label = f"Method: {method_name} | time: {round(times[-1], 2)}s | timesteps: {steps}"
 		
 		ax.plot(x, y, z, lw=.2, label=label)
-		ax.set_title(f"Lorenz Attractor")
+  
+		if system == "LorenzAttractor":
+			ax.set_title(f"Lorenz Attractor using {method_name} method")
+		elif system == "RosslerAttractor":
+			ax.set_title(f"Rossler Attractor using {method_name} method")
+		elif system == "ChuaCircuit":
+			ax.set_title(f"Chua's Circuit using {method_name} method")
 		plt.legend()
 		
 		plt.show()
@@ -30,8 +36,7 @@ class Visualize:
 
 class Animate:
     
-	def animate(self, steps, time, trajectory, method_name, sample_dt, interval):
-     
+	def animate(self, steps, time, trajectory, method_name, sample_dt, interval, system):
      
 		
 
@@ -46,8 +51,12 @@ class Animate:
 		ax.set_xlim(np.min(x), np.max(x))
 		ax.set_ylim(np.min(y), np.max(y))
 		ax.set_zlim(np.min(z), np.max(z))
-  
-		ax.set_title(f"Lorenz Attractor using {method_name} method")
+		if system == "LorenzAttractor":
+			ax.set_title(f"Lorenz Attractor using {method_name} method")
+		elif system == "RosslerAttractor":
+			ax.set_title(f"Rossler Attractor using {method_name} method")
+		elif system == "ChuaCircuit":
+			ax.set_title(f"Chua's Circuit using {method_name} method")
   
 		# Line trajectory 
 		line, = ax.plot([],[],[],lw=.5)

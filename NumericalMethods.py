@@ -15,7 +15,8 @@ class ForwardEuler:
 	Performs one step of the forward euler and updates all states
 	"""
 	def step(self, system, dt):
-		derivative = system.compute_derivatives(system.state)
+		dx, dy, dz = system.compute_derivatives(system.state)
+		derivative = np.array([dx, dy, dz])
 		system.state = system.state + dt * derivative
 		system.trajectory.append(system.state.copy())
 		return dt, True # The time derivative does not change and the state is always accepted
@@ -70,13 +71,20 @@ class RungeKutta:
 	"""
 	Uses an adaptive step distance based on the error and tolerance we set up
 	"""
-	def adaptive_step(self, dt, error, order, tol=1e-6):
+	def adaptive_step(self, dt, error, order, tol=1e-3):
 		safety = .9
+		min_dt = 1e-6  # don't allow dt below this
 		# If error is too small to be tracked, increase the timestep 
 		if error == 0:
 			return dt * 2
 		
 		scale = safety * (tol / error) ** (1/order)
+		
+		dt_new = min_dt
+        
+		if dt_new < min_dt:
+			print(f"Warning: dt clipped to min_dt={min_dt}")
+			dt_new = min_dt
 		
 		return dt * np.clip(scale, min=.1, max=5.0) 
 	
@@ -85,7 +93,7 @@ class RungeKutta:
 	"""
 	Performs one step with the specified Runge Kutta method
 	"""
-	def step(self, system, dt, tol=1e-6):
+	def step(self, system, dt, tol=1e-3):
 		A = self.method.A
 		C = self.method.C
 		b_high = self.method.b_high
