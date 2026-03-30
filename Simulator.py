@@ -22,22 +22,36 @@ class Simulator:
 		self.seconds = seconds if seconds else None
 
 	"""
-
+	Runs the simulation with a given tolerance. Can either be run with
+	a total number of desired seconds or a number of timesteps due to our
+	adaptive timestep method. This also downsamples our visualization for
+	performance purposes and stores the values in system.trajectory.
+	
 	"""
-	def run_simulation(self, dt=.001, sample_dt=0.01):
+	def run_simulation(self, dt=.001, sample_dt=0.01, tol=1e-3):
 		accepted_steps = 0
 		times = []
   
 		self.total_time = 0.0
 		next_sample_time = 0.0
-		next_percent_to_print = 5 # First print at 5 %
+		next_percent_to_print = 10 # First print at 10%
+		not_accepted_counter = 0
+		max_retries = 20
   
 		if self.seconds: 
 			while (self.total_time < self.seconds):
-				dt, accepted = solver.step(system, dt)
+				dt, accepted = solver.step(system, dt, tol)
 	
-				if not accepted: # If the step has too large error, reduce the timestep size and try again
-					continue 
+				if not accepted:
+					not_accepted_counter += 1
+
+					if not_accepted_counter >= max_retries:
+						print("Forcing step acceptance after repeated failures")
+						system.state = system.state  # or keep last y_high if available
+						accepted = True
+						not_accepted_counter = 0
+					else:
+						continue
  
 				self.total_time += dt
 				accepted_steps += 1
@@ -56,18 +70,34 @@ class Simulator:
 				times.append(self.total_time)
 				
 		else:
+			## Timestep functionality is not required necessarily, and may be depreciated ##
 			while accepted_steps < self.timesteps:
 				dt, accepted = solver.step(system, dt)
 	
 				if not accepted:
-					continue
+					not_accepted_counter += 1
+
+					if not_accepted_counter >= max_retries:
+						print("Forcing step acceptance after repeated failures")
+						system.state = system.state  # or keep last y_high if available
+						accepted = True
+						not_accepted_counter = 0
+					else:
+						continue
  
 				self.total_time += dt
 				accepted_steps += 1
 
+				# Downsampling for visualization
 				while self.total_time >= next_sample_time:
-					system.record_state()
+					system.record_state() # Updates the trajectory in system with the current state
 					next_sample_time += sample_dt
+     
+				# Progress updates
+				progress = self.total_time / self.seconds * 100
+				if progress >= next_percent_to_print:
+					print(f"Simulation progress: {int(progress)}%")
+					next_percent_to_print += 5
 	 
 				times.append(self.total_time)
 	
@@ -82,6 +112,7 @@ if __name__ == "__main__":
 	parser.add_argument("--system", type=str, default="LorenzAttractor")
 	parser.add_argument("--dt", type=float)
 	parser.add_argument("--sample_dt", type=float, default=.01) # For visualization purposes we can tweak the update frequency on the graph
+	parser.add_argument("--tol", type=float, default=1e-4) # Tweak the tolerance for different chaotic systems
 	parser.add_argument("--timesteps", type=int, default=10000)
 	parser.add_argument("--seconds", type=float) # We can either use seconds or total timesteps
 	parser.add_argument("--x", type=float, default=0.0)
@@ -132,9 +163,9 @@ if __name__ == "__main__":
 		print(f" {args.timesteps} timesteps.\n")
 	
 	if dt is not None:
-		steps, time, trajectory = simulation.run_simulation(dt=args.dt, sample_dt=args.sample_dt)
+		steps, time, trajectory = simulation.run_simulation(dt=args.dt, sample_dt=args.sample_dt, tol=args.tol)
 	else: 
-		steps, time, trajectory = simulation.run_simulation(sample_dt=args.sample_dt)
+		steps, time, trajectory = simulation.run_simulation(sample_dt=args.sample_dt, tol=args.tol)
 	
 	# Visualize the simulation if the flag is used
 	if args.visualize:

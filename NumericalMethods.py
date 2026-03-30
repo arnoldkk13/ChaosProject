@@ -1,14 +1,15 @@
 """
-numerical_methods houses the code for numerical methods used in the Lorenz 
-Attractor model. This uses the strategy design pattern to choose numerical methods
+NumericalMethods houses the code for numerical methods used in the chaotic
+attractor models. This uses the strategy design pattern to choose numerical methods
 either at runtime or using a passed in flag.
-This is written by Kyle Arnold for Math435
 """
 import numpy as np
 
 """
 Forward Euler (or Explicit Euler) is the simplest method that computes updates based 
-off of the current location and the current time step derivative.
+off of the current location and the current time step derivative. This is of the form
+yn+1 = yn + dt * f(tn, yn), where each new value yn+1 is determined by the previous
+plus a step (dt) in the direction of the current derivative f(tn, yn)
 """
 class ForwardEuler:
 	"""
@@ -22,8 +23,9 @@ class ForwardEuler:
 		return dt, True # The time derivative does not change and the state is always accepted
 	
 """
-The Dormand-Prince 45 method is a 5th and 4th order Runge-Kutta method
-that is used to model the Lorenz system. The
+The Dormand-Prince 45 method is a 5th and 4th order Runge-Kutta embedded method that 
+uses six functions to calculate fourth and fifth order solutions. These are found from
+the butcher tableau defined below. This is the default method when running the simulation.
 """	
 class DormandPrince45:
 	def __init__(self):
@@ -47,6 +49,11 @@ class DormandPrince45:
 		self.stages = 7
 		self.order = 5 
 
+"""
+The HeunEuler method is a 2nd and 1st order Runge-Kutta embedded method that can be used
+to find an ereror estimate for the forward euler (the 1st order method). These are found from
+the butcher tableau defined below.
+"""	
 class HeunEuler:
 	def __init__(self):
 		"""Butcher Tableau for Heun-Euler 2(1) method"""
@@ -64,34 +71,56 @@ class HeunEuler:
 
 		self.stages = 3
 
+"""
+RungeKutta implements a family of embedded Runge Kutta methods for
+solving systems of ODEs. These methods compute derivatives at multiple
+intermediate stages within each timestep and combine as designated from their
+respective Butcher tableau. 
+
+Embedded methods compute solutions with a higher and lower order estimate, so 
+an error estimate can be calculated in the same step. This estimate is used to adjust 
+our adaptive timestep, which is defined in this class.
+
+This uses the strategy design pattern to select methods.
+"""
 class RungeKutta:
 	def __init__(self, method):
 		
 		self.method = method()
 	"""
-	Uses an adaptive step distance based on the error and tolerance we set up
+	Uses an adaptive step distance based on the error and tolerance we achieve from
+	the embedded method. We define some sanity checks such as a minimum timestep of 1e-8 
+	and a max of .1.
 	"""
 	def adaptive_step(self, dt, error, order, tol=1e-3):
 		safety = .9
-		min_dt = 1e-6  # don't allow dt below this
+		min_dt = 1e-8  # don't allow dt below this
+		max_dt = 1e-1
 		# If error is too small to be tracked, increase the timestep 
 		if error == 0:
-			return dt * 2
+			scale = 2.0
+		else:
+			scale = safety * (tol / error) ** (1 / (order + 1))
 		
-		scale = safety * (tol / error) ** (1/order)
+		scale = np.clip(scale, 0.1, 5.0)
+  
+		dt_new = dt * scale
+		if abs(dt_new - dt) < 1e-12:
+			dt_new = dt * 0.5
 		
-		dt_new = min_dt
-        
+		# Enforce bounds
 		if dt_new < min_dt:
-			print(f"Warning: dt clipped to min_dt={min_dt}")
 			dt_new = min_dt
+		elif dt_new > max_dt:
+			dt_new = max_dt
 		
-		return dt * np.clip(scale, min=.1, max=5.0) 
+		return dt_new
 	
-	## TODO: Write the runge_kutta_stepper method that takes in the method name and returns the step
-	# That we use for this
 	"""
-	Performs one step with the specified Runge Kutta method
+	Performs one step with the specified Runge Kutta method. We return the new
+ 	modified timestep from adaptive_step and a boolean indicating whether the timestep
+	is accepted (scaled error < a tolerance threshold). This is designed to run in a loop
+	in the run_simulation function.
 	"""
 	def step(self, system, dt, tol=1e-3):
 		A = self.method.A
@@ -118,11 +147,21 @@ class RungeKutta:
 			y_high += dt * b_high[i] * k[i]
 			y_low  += dt * b_low[i]  * k[i]
 
-		error = np.linalg.norm(y_high - y_low)
+		atol = 1e-6
+		rtol = tol 
+
+		scale = atol + rtol * np.maximum(np.abs(y_high), np.abs(system.state))
+
+		error = np.sqrt(np.mean(((y_high - y_low) / scale) ** 2))
+  
+		dt_min = 1e-8
+		if dt <= dt_min and error >= 1.0:
+			# Force accept to break infinite loop
+			system.state = y_high
+			return dt_new, True
 
 		dt_new = self.adaptive_step(dt, error, order, tol)
-
-		if error < tol:
+		if error < 1.0:
 			system.state = y_high
 			return dt_new, True
 		else:

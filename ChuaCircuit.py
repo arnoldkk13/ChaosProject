@@ -1,7 +1,3 @@
-##########################################
-# CURRENTLY THIS DOES NOT WORK CORRECTLY #
-##########################################
-
 from ChaoticSystem import ChaoticSystem
 import numpy as np
 """
@@ -20,7 +16,7 @@ class ChuaCircuit(ChaoticSystem):
 	"""
 	Initializes the Chua System coefficients
 	"""
-	def __init__(self, initial_state=None, α=15.6, β=28, m0=-8/7, m1=-5/7):
+	def __init__(self, initial_state=None, α=9.0, β=14.282, m0=-1.143, m1=-0.714):
 		super().__init__(initial_state)
 		# Define coefficients for σ, ρ, and β by the passed in values
 		print(f"Chua Coefficients: α={α}, β={β}, m0={m0}, m1={m1}")

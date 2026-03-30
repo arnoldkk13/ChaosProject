@@ -29,7 +29,7 @@ class ChaoticSystem(ABC):
 		return self.state
 
 	"""
-	Append the current state to the trajectory.
+	Appends the current state to the trajectory.
 	"""
 	def record_state(self):
 		self.trajectory.append(self.state.copy())

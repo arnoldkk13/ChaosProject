@@ -33,12 +33,14 @@ class Visualize:
 		
 		plt.show()
 		
+"""
+Animate houses the logic for animating the trajectory of the system using FuncAnimation. This is done
+by layering frames on top of each other starting from the beginning trajectory and ending at the end.
+"""
 
 class Animate:
     
 	def animate(self, steps, time, trajectory, method_name, sample_dt, interval, system):
-     
-		
 
 		traject_arr = np.array(trajectory)
 
