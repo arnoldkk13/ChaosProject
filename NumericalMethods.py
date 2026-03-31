@@ -15,7 +15,7 @@ class ForwardEuler:
 	"""
 	Performs one step of the forward euler and updates all states
 	"""
-	def step(self, system, dt):
+	def step(self, system, dt, tol=None):
 		dx, dy, dz = system.compute_derivatives(system.state)
 		derivative = np.array([dx, dy, dz])
 		system.state = system.state + dt * derivative

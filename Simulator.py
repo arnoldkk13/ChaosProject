@@ -35,7 +35,7 @@ class Simulator:
   
 		self.total_time = 0.0
 		next_sample_time = 0.0
-		next_percent_to_print = 5 # First print at 10%
+		next_percent_to_print = 5 # First print at 5%
 		not_accepted_counter = 0
 		max_retries = 20
   

@@ -1,5 +1,7 @@
 import numpy as np
+from mpl_toolkits.mplot3d.art3d import Line3DCollection
 import matplotlib.pyplot as plt
+import matplotlib as mpl
 from matplotlib.animation import FuncAnimation
 """
 The Visualize class is responsible for generating an image of the trajectory using matplotlib.
@@ -15,14 +17,36 @@ class Visualize:
 		
 		fig = plt.figure()
 		ax = fig.add_subplot(projection='3d')
+
+		points = np.array([x, y, z]).T.reshape(-1, 1, 3)
+		segments = np.concatenate([points[:-1], points[1:]], axis=1)
+  
+		t = np.array(times)
+		t_norm = (t - t[0]) / (t[-1] - t[0])
+  
+		cmap = plt.cm.plasma
+		norm = mpl.colors.Normalize(vmin=t_norm.min(), vmax=t_norm.max())
+  
+		lc = Line3DCollection(segments, cmap=cmap, norm=norm)
+		lc.set_array(t_norm[:-1])   # one color per segment
+		lc.set_linewidth(0.2)
+  
+		ax.add_collection(lc)
+  
+		ax.auto_scale_xyz(x, y, z)
+
 		
 		if dt:
 			label = f"Method: {method_name} | time: {round(times[-1], 2)}s | timesteps: {steps} | dt = {dt}"
 		else:
 			label = f"Method: {method_name} | time: {round(times[-1], 2)}s | timesteps: {steps}"
-		
-		ax.plot(x, y, z, lw=.2, label=label)
   
+		# Create an invisible line for the legend
+		ax.plot([], [], [], color=cmap(0.8), label=label)
+		ax.set_xlabel("X")
+		ax.set_ylabel("Y")
+		ax.set_zlabel("Z")
+		
 		if system == "LorenzAttractor":
 			ax.set_title(f"Lorenz Attractor using {method_name} method")
 		elif system == "RosslerAttractor":
@@ -31,6 +55,10 @@ class Visualize:
 			ax.set_title(f"Chua's Circuit using {method_name} method")
 		elif system == "AizawaAttractor":
 			ax.set_title(f"Aizawa Attractor using {method_name} method")
+   
+		cbar = fig.colorbar(lc, ax=ax, pad=0.1)
+		cbar.set_label("Normalized Time")
+
 		plt.legend()
 		
 		plt.show()
@@ -87,6 +115,9 @@ class Animate:
 		}
 		title = titles.get(system, system)
 		ax.set_title(f"{title} using {method_name} method")
+		ax.set_xlabel("X")
+		ax.set_ylabel("Y")
+		ax.set_zlabel("Z")
   
 		# Line trajectory 
 		line, = ax.plot([],[],[],lw=.5)
