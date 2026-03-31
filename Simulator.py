@@ -121,7 +121,7 @@ if __name__ == "__main__":
 	parser.add_argument("--z", type=float, default=0.0)
 	parser.add_argument("--visualize", action="store_true", required=False)
 	parser.add_argument("--animate", action="store_true", required=False)
-	parser.add_argument("--interval", type=int, default=5) # Stores the animation interval time
+	parser.add_argument("--update_method", type=str, default="linear")
 
 	args = parser.parse_args()
 
@@ -181,4 +181,4 @@ if __name__ == "__main__":
 	if args.animate:
 		print(f"Animating the simulation.\n")
 		animator = Animate()
-		animator.animate(steps, time, trajectory, args.method, args.sample_dt, args.interval, args.system)
+		animator.animate(steps, time, trajectory, args.method, args.sample_dt, args.system, args.update_method)

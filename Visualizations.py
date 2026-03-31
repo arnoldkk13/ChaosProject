@@ -5,7 +5,7 @@ from matplotlib.animation import FuncAnimation
 The Visualize class is responsible for generating an image of the trajectory using matplotlib.
 This is a static image with no animation capabilities.
 
-This has one function for displaying the graph. Technically we could store the simulator
+This has one function for displaying the graph. Technically we could store the simulator error
 but this is not currently implemented
 """
 class Visualize:
@@ -39,14 +39,37 @@ class Visualize:
 Animate houses the logic for animating the trajectory of the system using FuncAnimation. This is done
 by layering frames on top of each other starting from the beginning trajectory and ending at the end.
 """
-
 class Animate:
-    
-	def animate(self, steps, time, trajectory, method_name, sample_dt, interval, system):
+	"""
+	Animate will draw the trajectory from the passed in trajectory as frames. This takes in a 
+	"""
+	def animate(self, steps, time, trajectory, method_name, sample_dt, system, update_method='linear', duration=150):
 
 		traject_arr = np.array(trajectory)
 
 		x, y, z = traject_arr[:, 0], traject_arr[:, 1], traject_arr[:, 2]
+  
+		TARGET_FPS = 60
+		TARGET_DURATION_S = duration
+		n_frames = TARGET_FPS * TARGET_DURATION_S  # 3600 frames for 60s at 60fps
+		interval = 1000 // TARGET_FPS  # Fixed ~17ms per frame
+  
+		"""
+		Returns a modified trajectory as a result of the time and length of the trajectory object for a smooth
+		image. This can be done either linearly or exponentially (gives the appearance of speeding up)
+		"""
+		def set_trajectory_for_animation(trajectory, update_method):
+			n = len(trajectory)
+			if update_method == 'linear':
+				indices = np.linspace(0, n - 1, n_frames, dtype=int)
+			elif update_method == 'exponential':
+				exp_vals = np.logspace(0, np.log10(n), n_frames)
+				indices = np.clip(exp_vals - 1, 0, n - 1).astype(int)
+			else:
+				raise ValueError(f"Unknown update_method '{update_method}'. Expected 'linear' or 'exponential'.")
+			return indices
+
+		frame_indices = set_trajectory_for_animation(traject_arr, update_method)
 
 		fig = plt.figure()
 		ax = fig.add_subplot(projection='3d')
@@ -55,12 +78,15 @@ class Animate:
 		ax.set_xlim(np.min(x), np.max(x))
 		ax.set_ylim(np.min(y), np.max(y))
 		ax.set_zlim(np.min(z), np.max(z))
-		if system == "LorenzAttractor":
-			ax.set_title(f"Lorenz Attractor using {method_name} method")
-		elif system == "RosslerAttractor":
-			ax.set_title(f"Rossler Attractor using {method_name} method")
-		elif system == "ChuaCircuit":
-			ax.set_title(f"Chua's Circuit using {method_name} method")
+  
+		titles = {
+			"LorenzAttractor":  "Lorenz Attractor",
+			"RosslerAttractor": "Rossler Attractor",
+			"ChuaCircuit":      "Chua's Circuit",
+			"AizawaAttractor":  "Aizawa Attractor",
+		}
+		title = titles.get(system, system)
+		ax.set_title(f"{title} using {method_name} method")
   
 		# Line trajectory 
 		line, = ax.plot([],[],[],lw=.5)
@@ -76,23 +102,24 @@ class Animate:
 		These frame updates are layered on top of each other to achieve the animation.
 		"""
 		def update(frame):
+			idx = frame_indices[frame]
 			# Draw the trajectory to the current frame
-			line.set_data(x[:frame], y[:frame])
-			line.set_3d_properties(z[:frame])
+			line.set_data(x[:idx], y[:idx])
+			line.set_3d_properties(z[:idx])
    
 			# Update the moving point 
-			point.set_data([x[frame]], [y[frame]])
-			point.set_3d_properties([z[frame]])
+			point.set_data([x[idx]], [y[idx]])
+			point.set_3d_properties([z[idx]])
    
 			# Set the time 
-			time_text.set_text(f"t = {frame * sample_dt:.2f}s")
+			time_text.set_text(f"t = {idx * sample_dt:.2f}s")
 			
 			return line, point, time_text
   
 		animation = FuncAnimation(
 			fig,
 			update,
-			frames=len(x),
+			frames=n_frames,
 			interval=interval,
 			blit=True
 		)
