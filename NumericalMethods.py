@@ -179,7 +179,7 @@ class RungeKutta:
 	"""
 	
 	"""
-	def step(self, f, state, dt, tol=1e-3):
+	def step_alt(self, f, state, dt, tol=1e-3):
 		A = self.method.A
 		b_high = self.method.b_high
 		b_low = self.method.b_low

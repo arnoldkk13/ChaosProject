@@ -114,7 +114,7 @@ class Lyapunov():
 		# For each timestep in the tital number of timesteps:
 		for step in range(n_steps):
 			# Step with the system
-			state = solver.step(combined_dynamics, state, dt)
+			state = solver.step_alt(combined_dynamics, state, dt)
 			total_time += dt
    
 			x = state[:3]

@@ -8,14 +8,13 @@ class Animate:
 	"""
 	Animate will draw the trajectory from the passed in trajectory as frames. This takes in a 
 	"""
-	def animate(self, steps, time, trajectory, method_name, sample_dt, system, update_method='linear', duration=150, save=False):
+	def animate(self, steps, times, trajectory, method_name, sample_dt, system, update_method='linear', duration=150, save=False):
 		import matplotlib 
 		if save:
 			matplotlib.use('Agg') 
 		print(f'matplotlib backend: {matplotlib.get_backend()}')
 		import matplotlib.pyplot as plt
 		from matplotlib.animation import FuncAnimation
-
 		traject_arr = np.array(trajectory)
 
 		x, y, z = traject_arr[:, 0], traject_arr[:, 1], traject_arr[:, 2]
@@ -90,29 +89,31 @@ class Animate:
 			
 			return line, point, time_text
   
-		animation = FuncAnimation(
+		
+		if not save:
+			animation = FuncAnimation(
 			fig,
 			update,
 			frames=n_frames,
 			interval=interval,
 			blit=True
-		)
-		if not save:
-			plt.show()
-		if save:
-			from matplotlib.animation import FFMpegWriter
-
-			writer = FFMpegWriter(fps=60)
-			with writer.saving(fig, "output.mp4", dpi=100):
-				for i in range(n_frames):
-					update(i) 
-					writer.grab_frame()
-
-			animation.save(
-				f'videos/{method_name}_animation_{time}s.mp4',
-				writer=writer
 			)
-			print(f"Saved animation to videos/{method_name}_animation_{time}s.mp4")
+			plt.show()
+
+		if save:
+			output_path = f'videos/{method_name}_animation_{TARGET_DURATION_S}s.mp4'
+			from matplotlib.animation import FFMpegWriter
+			writer = FFMpegWriter(fps=TARGET_FPS)
+
+			with writer.saving(fig, output_path, dpi=100):
+				for frame in range(n_frames):
+					update(frame) 
+					writer.grab_frame()
+					if frame % 100 == 0:
+						print(f"Frame {frame}/{n_frames} ({100 * frame // n_frames}%)")
+			
+			plt.close(fig)
+			print(f"Saved animation to {output_path}")
 		
   
 

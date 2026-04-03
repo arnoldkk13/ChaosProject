@@ -39,3 +39,18 @@ class AizawaAttractor(ChaoticSystem):
 		dz = self.c + self.a * z - (z**3 / 3) - (x**2 + y**2) * (1 + self.e * z) + self.f * z * x**3
 
 		return np.array([dx, dy, dz])
+
+	def jacobian(self, state):
+		x, y, z = state
+
+		J = np.array([
+			[z - self.b, -self.d, x],
+			[self.d, z - self.b, y],
+			[
+				-2*x*(1 + self.e*z) + 3*self.f*z*x**2,
+				-2*y*(1 + self.e*z),
+				self.a - z**2 - self.e*(x**2 + y**2) + self.f*x**3
+			]
+		])
+
+		return J

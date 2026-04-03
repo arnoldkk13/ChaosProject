@@ -41,3 +41,21 @@ class ChuaCircuit(ChaoticSystem):
 		dz = -self.β * y
 
 		return np.array([dx, dy, dz])
+
+
+	def jacobian(self, state):
+		x, y, z = state
+
+		# Compute f'(x)
+		if abs(x) <= 1:
+			dfdx = self.m0
+		else:
+			dfdx = self.m1
+
+		J = np.array([
+			[self.α * (-1 - dfdx), self.α, 0],
+			[1, -1, 1],
+			[0, -self.β, 0]
+		])
+
+		return J

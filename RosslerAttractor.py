@@ -39,3 +39,12 @@ class RosslerAttractor(ChaoticSystem):
 		dz = self.β + z * (x - self.γ)
 
 		return np.array([dx, dy, dz])
+
+	def jacobian(self, state):
+		x, y, z = state
+		J = np.array([
+        [0, -1, -1],
+        [1, self.α, 0],
+        [z, 0, x - self.γ]
+		])
+		return J
