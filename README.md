@@ -1,5 +1,5 @@
 # WeatherModels
-Houses the code for the Weather Modeling project for Math435. This code was written by Kyle Arnold 
+Houses the code for the Chaos project for Math435. This code was written by Kyle Arnold and William Miller
 for the purpose of understanding Chaotic Systems.
 
 Commands to run each chaotic system to generate the images found in the images folder:
